@@ -1,0 +1,259 @@
+package main
+
+import (
+	"fmt"
+	"io/ioutil"
+	"math"
+	"net/http"
+	"strconv"
+	"strings"
+)
+
+// part 1: 248
+
+const (
+	day = 3
+	R   = 82
+	D   = 68
+	L   = 76
+	U   = 85
+)
+
+type jumbleOfWires struct {
+	wires []wire
+}
+
+type wire struct {
+	movements []movement
+}
+
+type movement struct {
+	direction byte
+	length    int
+}
+
+type grid struct {
+	positions []position
+}
+
+type position struct {
+	x int
+	y int
+}
+
+type intersections grid
+
+func main() {
+	inputWires := getProblemInput(day)
+
+	w1 := wire{
+		movements: []movement{
+			{
+				direction: R,
+				length:    8,
+			},
+			{
+				direction: U,
+				length:    5,
+			},
+			{
+				direction: L,
+				length:    5,
+			},
+			{
+				direction: D,
+				length:    3,
+			},
+		},
+	}
+
+	w2 := wire{
+		movements: []movement{
+			{
+				direction: U,
+				length:    7,
+			},
+			{
+				direction: R,
+				length:    6,
+			},
+			{
+				direction: D,
+				length:    4,
+			},
+			{
+				direction: L,
+				length:    4,
+			},
+		},
+	}
+
+	g1 := getWireGrid(w1)
+	g2 := getWireGrid(w2)
+
+	cross := getIntersections(g1, g2)
+
+	closest := getClosestManhattan(cross)
+	fmt.Println("Manhattan:")
+	fmt.Println(closest)
+
+	g3 := getWireGrid(inputWires.wires[0])
+	g4 := getWireGrid(inputWires.wires[1])
+
+	cross2 := getIntersections(g3, g4)
+
+	closest2 := getClosestManhattan(cross2)
+	fmt.Println("Manhattan:")
+	fmt.Println(closest2)
+}
+
+func getClosestManhattan(i intersections) int {
+	dist := getManhattan(i.positions[0])
+
+	for _, v := range i.positions {
+		newDist := getManhattan(v)
+		if newDist < dist {
+			dist = newDist
+		}
+	}
+
+	return dist
+}
+
+func getManhattan(p position) int {
+	return int(math.Abs(float64(p.x)) + math.Abs(float64(p.y)))
+}
+
+func getIntersections(g1, g2 grid) intersections {
+	inter := intersections{}
+
+	for _, v := range g1.positions {
+		for _, z := range g2.positions {
+			if v.x == z.x && v.y == z.y {
+				inter.positions = append(inter.positions, position{v.x, v.y})
+			}
+		}
+	}
+
+	return inter
+}
+
+func getWireGrid(w wire) grid {
+
+	g := grid{}
+	pos := position{0, 0}
+
+	for _, v := range w.movements {
+		switch v.direction {
+		case R:
+			for i := 0; i < v.length; i++ {
+				pos.x++
+				g.positions = append(g.positions, pos)
+			}
+		case D:
+			for i := 0; i < v.length; i++ {
+				pos.y--
+				g.positions = append(g.positions, pos)
+			}
+		case L:
+			for i := 0; i < v.length; i++ {
+				pos.x--
+				g.positions = append(g.positions, pos)
+			}
+		case U:
+			for i := 0; i < v.length; i++ {
+				pos.y++
+				g.positions = append(g.positions, pos)
+			}
+		}
+	}
+
+	return g
+}
+
+func getProblemInput(day int) jumbleOfWires {
+	const session = ""
+	url := fmt.Sprintf("https://adventofcode.com/2019/day/%v/input", day)
+	cookie := http.Cookie{
+		Name:   "session",
+		Value:  session,
+		Domain: ".adventofcode.com",
+		Path:   "/",
+	}
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("error creating http req - %v\n", err)
+		return jumbleOfWires{}
+	}
+	req.AddCookie(&cookie)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("error on http req - %v\n", err)
+		return jumbleOfWires{}
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("error on http body - %v\n", err)
+		return jumbleOfWires{}
+	}
+
+	wires := csvToWires(body)
+
+	return wires
+}
+
+func csvToWires(input []byte) jumbleOfWires {
+	wires := jumbleOfWires{}
+	xm1 := []movement{}
+	xm2 := []movement{}
+	s := string(input)
+	s = strings.TrimSuffix(s, "\n")
+	s1 := strings.Split(s, "\n")[0]
+	s2 := strings.Split(s, "\n")[1]
+	xs1 := strings.Split(s1, ",")
+	xs2 := strings.Split(s2, ",")
+
+	for _, v := range xs1 {
+		d := v[0]
+		ms := v[1:]
+		mi, err := strconv.Atoi(ms)
+		if err != nil {
+			fmt.Printf("error on strcon - %v\n", err)
+			continue
+		}
+		m := movement{
+			direction: d,
+			length:    mi,
+		}
+		xm1 = append(xm1, m)
+	}
+
+	for _, v := range xs2 {
+		d := v[0]
+		ms := v[1:]
+		mi, err := strconv.Atoi(ms)
+		if err != nil {
+			fmt.Printf("error on strcon - %v\n", err)
+			continue
+		}
+		m := movement{
+			direction: d,
+			length:    mi,
+		}
+		xm2 = append(xm2, m)
+	}
+
+	w1 := wire{
+		movements: xm1,
+	}
+
+	w2 := wire{
+		movements: xm2,
+	}
+
+	wires.wires = append(wires.wires, w1)
+	wires.wires = append(wires.wires, w2)
+	return wires
+}
