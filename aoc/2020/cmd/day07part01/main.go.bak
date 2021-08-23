@@ -1,0 +1,93 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/mlhoyt/aoc2020/go/pkg/utils"
+)
+
+/*
+light red bags contain 1 bright white bag, 2 muted yellow bags.
+dark orange bags contain 3 bright white bags, 4 muted yellow bags.
+bright white bags contain 1 shiny gold bag.
+muted yellow bags contain 2 shiny gold bags, 9 faded blue bags.
+shiny gold bags contain 1 dark olive bag, 2 vibrant plum bags.
+dark olive bags contain 3 faded blue bags, 4 dotted black bags.
+vibrant plum bags contain 5 faded blue bags, 6 dotted black bags.
+faded blue bags contain no other bags.
+dotted black bags contain no other bags.
+*/
+
+type rule struct {
+	Bag     string
+	Contain map[string]int
+}
+
+func main() {
+	ss, err := utils.LoadInputFile("day07_test.txt")
+	if err != nil {
+		panic(err)
+	}
+
+	rs := buildRulesFromStringSlice(ss)
+
+	pretty, _ := json.MarshalIndent(rs, "", " ")
+	fmt.Println(string(pretty))
+}
+
+func buildRulesFromStringSlice(ss []string) []rule {
+	rs := []rule{}
+
+	for _, s := range ss {
+		r := buildRuleFromString(s)
+		rs = append(rs, r)
+	}
+
+	return rs
+}
+
+func buildRuleFromString(s string) rule {
+	//defer fmt.Printf("\n\n")
+	//fmt.Printf("DEBUG \n- buildRuleFromString \n- s = %v\n", s)
+	s1 := strings.SplitN(s, " bags contain ", 2)
+	//fmt.Printf("s1 = %v\n", s1)
+	bag := s1[0]
+	m := buildContainFromString(s1[1])
+
+	r := rule{
+		Bag:     bag,
+		Contain: m,
+	}
+
+	return r
+}
+
+func buildContainFromString(s string) map[string]int {
+	m := map[string]int{}
+
+	if s == "no other bags" {
+		return m
+	}
+
+	ss := strings.Split(s, ", ")
+
+	for _, s := range ss {
+		str, i := newStuffFromString(s)
+		m[str] = m[str] + i
+	}
+
+	return m
+}
+
+func newStuffFromString(s string) (string, int) {
+	ss := strings.SplitN(s, " ", 2)
+	i, _ := strconv.Atoi(ss[0])
+
+	str := strings.TrimSuffix(ss[1], "bag")
+	str = strings.TrimSuffix(str, "bags")
+
+	return str, i
+}
