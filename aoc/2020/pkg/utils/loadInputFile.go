@@ -7,7 +7,7 @@ import (
 )
 
 func LoadInputFile(name string) ([]string, error) {
-	absName, err := filepath.Abs("../../input/" + name)
+	absName, err := filepath.Abs("input/" + name)
 	if err != nil {
 		return nil, err
 	}
